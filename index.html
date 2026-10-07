@@ -65,7 +65,13 @@
   .off{ display:flex; align-items:flex-start; gap:9px; border:1px solid var(--line);
     border-radius:var(--radius); padding:10px 11px; margin-bottom:6px; cursor:pointer; background:var(--paper-card); }
   .off.sel{ border-color:var(--gold); background:#fdfaf1; }
-  .off .code{ flex:0 0 42px; font-size:11px; font-weight:700; color:var(--navy); }
+  .off .code{ flex:0 0 48px; font-size:11px; font-weight:700; color:var(--navy); }
+  .ogrp{
+    font-size:9.5px; text-transform:uppercase; letter-spacing:.07em;
+    color:var(--navy); font-weight:700; margin:12px 0 6px;
+    padding-bottom:4px; border-bottom:1px solid var(--line);
+  }
+  .ogrp:first-child{ margin-top:0; }
   .off .txt{ flex:1; font-size:12.5px; }
 
   .notice{ background:#f6efdc; border:1px solid #e3d3a4; color:#7a5c12;
@@ -128,7 +134,9 @@
 
     <div class="card" id="offCard" hidden>
       <div class="lab">2 &middot; Anong paglabag</div>
-      <div id="offList" style="margin-top:8px;"></div>
+      <input class="search" id="offSearch" type="search" placeholder="Hanapin ang paglabag..."
+        autocomplete="off" style="margin-top:8px; margin-bottom:8px;">
+      <div id="offList"></div>
     </div>
 
     <div class="card" id="noteCard" hidden>
@@ -275,6 +283,7 @@ async function loadClass(user){
 }
 
 $('search').addEventListener('input', renderList);
+$('offSearch').addEventListener('input', renderOffenses);
 
 function renderList(){
   const q = ($('search').value || '').trim().toLowerCase();
@@ -301,10 +310,29 @@ function renderOffenses(){
   $('noteCard').hidden = !(pickedStudent && pickedOffense);
   if(!pickedStudent) return;
   const host = $('offList');
-  host.innerHTML = (classData.offenses || []).map(o=>`
-    <div class="off ${pickedOffense === o.code ? 'sel' : ''}" data-code="${o.code}">
-      <span class="code">${o.code}</span><span class="txt">${o.text}</span>
-    </div>`).join('');
+  const all = classData.offenses || [];
+  const q = (($('offSearch') || {}).value || '').trim().toLowerCase();
+  const shown = all.filter(o => !q
+    || o.text.toLowerCase().includes(q) || o.code.toLowerCase().includes(q));
+
+  /* Pinagpapangkat ayon sa pinagmulan — magkaiba ang handbook at ang
+     DepEd Order, kaya dapat malinaw kung alin ang pinipili. */
+  const groups = [];
+  shown.forEach(o=>{
+    const label = o.group || 'Mga paglabag';
+    let g = groups.find(x => x.label === label);
+    if(!g){ g = { label, items:[] }; groups.push(g); }
+    g.items.push(o);
+  });
+
+  host.innerHTML = groups.length ? groups.map(g=>`
+    <div class="ogrp">${g.label}</div>
+    ${g.items.map(o=>`
+      <div class="off ${pickedOffense === o.code ? 'sel' : ''}" data-code="${o.code}">
+        <span class="code">${o.code}</span><span class="txt">${o.text}</span>
+      </div>`).join('')}`).join('')
+    : '<div class="empty">Walang tugma sa hinahanap mo.</div>';
+
   host.querySelectorAll('[data-code]').forEach(d=>{
     d.addEventListener('click', ()=>{
       pickedOffense = pickedOffense === d.dataset.code ? null : d.dataset.code;
@@ -354,8 +382,9 @@ function renderMine(){
   $('mine').innerHTML = mine.map(r=>{
     const st = r.status === 'approved' ? 'Naitala na ng adviser'
       : r.status === 'rejected' ? 'Hindi tinanggap' : 'Hinihintay ang adviser';
+    const src = ((classData.offenses || []).find(o => o.code === r.code) || {}).group || '';
     return `<div class="sent ${r.status === 'rejected' ? 'rej' : ''}">
-      <strong>${nameOf(r.studentId)}</strong> — ${r.code} &middot; ${st}
+      <strong>${nameOf(r.studentId)}</strong> — ${r.code}${src ? ' (' + src + ')' : ''} &middot; ${st}
       ${r.teacherNote ? `<div style="margin-top:3px; font-style:italic;">${r.teacherNote}</div>` : ''}
     </div>`;
   }).join('');
