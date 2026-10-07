@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="fil">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Protocol Officer</title>
+<style>
+  :root{
+    --navy:#16324f; --navy-deep:#0e2438; --gold:#c79a3a;
+    --paper:#f6f4ee; --paper-card:#fffdf8;
+    --ink:#23282e; --ink-soft:#5c6570; --line:#e2ddcf; --line-strong:#cfc7ae;
+    --ok:#3a7d54; --danger:#b8433a; --late:#a3690a; --male:#2f6690;
+    --radius:10px;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *,*::before,*::after{ box-sizing:inherit; }
+  body{ margin:0; background:var(--paper); color:var(--ink);
+    font-family:"Segoe UI",system-ui,-apple-system,sans-serif; font-size:14px; line-height:1.6; }
+
+  .auth{ max-width:380px; margin:7vh auto; background:var(--paper-card);
+    border:1px solid var(--line); border-radius:12px; padding:26px 22px; box-shadow:0 4px 18px rgba(0,0,0,.05); }
+  .auth h1{ font-size:18px; margin:0 0 4px; color:var(--navy-deep); }
+  .auth p.sub{ margin:0 0 18px; font-size:12.5px; color:var(--ink-soft); }
+  label{ display:block; font-size:12px; font-weight:600; color:var(--navy-deep); margin:12px 0 4px; }
+  input, select, textarea{ width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:7px;
+    font-size:14px; font-family:inherit; background:#fff; color:var(--ink); }
+  input:focus, select:focus, textarea:focus{ outline:2px solid #e7cf95; border-color:var(--gold); }
+  .btn{ width:100%; margin-top:16px; padding:10px 14px; border:0; border-radius:7px;
+    background:var(--navy); color:#fff; font-size:14px; font-weight:600; font-family:inherit; cursor:pointer; }
+  .btn:hover{ background:var(--navy-deep); }
+  .btn:disabled{ opacity:.6; cursor:default; }
+  .linkrow{ margin-top:14px; font-size:12.5px; text-align:center; color:var(--ink-soft); }
+  .linkrow a{ color:var(--navy); cursor:pointer; text-decoration:underline; }
+  .msg{ margin-top:14px; padding:9px 11px; border-radius:7px; font-size:12.5px; display:none; }
+  .msg.err{ display:block; background:#fbeeed; border:1px solid #e2c6c2; color:var(--danger); }
+  .msg.ok{ display:block; background:#eaf5ee; border:1px solid #c3e0cd; color:var(--ok); }
+  .msg.info{ display:block; background:#eaf1fb; border:1px solid #c7dcf3; color:var(--navy); }
+
+  .top{ position:sticky; top:0; z-index:20;
+    padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px;
+    background:linear-gradient(160deg,var(--navy-deep),var(--navy)); color:#fff;
+    box-shadow:0 2px 10px rgba(0,0,0,.16); }
+  .top .cls{ font-size:15px; font-weight:600; }
+  .top .sub{ font-size:11.5px; opacity:.72; margin-top:2px; }
+  .top .who{ font-size:11px; opacity:.6; margin-top:6px; }
+  .body{ padding:14px 14px calc(40px + env(safe-area-inset-bottom,0px)); max-width:620px; margin:0 auto; }
+
+  .card{ background:var(--paper-card); border:1px solid var(--line);
+    border-radius:var(--radius); padding:13px 14px; margin-bottom:12px; }
+  .card .lab{ font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:var(--navy); font-weight:700; }
+
+  .search{ width:100%; padding:11px 13px; font-size:15px; font-family:inherit;
+    border:1px solid var(--line); border-radius:var(--radius); background:var(--paper-card); margin-bottom:10px; }
+  .item{ display:flex; align-items:center; gap:10px; width:100%; background:var(--paper-card);
+    border:1px solid var(--line); border-radius:var(--radius); padding:11px 12px; margin-bottom:6px;
+    font-family:inherit; text-align:left; cursor:pointer; color:var(--ink); }
+  .item.sel{ border-color:var(--gold); background:#fdfaf1; }
+  .item .chip{ flex:0 0 auto; width:30px; height:30px; border-radius:8px; display:flex;
+    align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#fff; }
+  .item .chip.m{ background:var(--male); } .item .chip.f{ background:#a8517a; }
+  .item .nm{ flex:1; font-size:13.5px; font-weight:600; }
+
+  .off{ display:flex; align-items:flex-start; gap:9px; border:1px solid var(--line);
+    border-radius:var(--radius); padding:10px 11px; margin-bottom:6px; cursor:pointer; background:var(--paper-card); }
+  .off.sel{ border-color:var(--gold); background:#fdfaf1; }
+  .off .code{ flex:0 0 42px; font-size:11px; font-weight:700; color:var(--navy); }
+  .off .txt{ flex:1; font-size:12.5px; }
+
+  .notice{ background:#f6efdc; border:1px solid #e3d3a4; color:#7a5c12;
+    border-radius:var(--radius); padding:10px 12px; font-size:11.5px; margin-bottom:12px; line-height:1.65; }
+  .sent{ background:#eaf5ee; border:1px solid #c3e0cd; color:var(--ok);
+    border-radius:var(--radius); padding:9px 11px; font-size:12px; margin-bottom:6px; }
+  .rej{ background:#fbeeed; border:1px solid #e2c6c2; color:var(--danger); }
+  .empty{ text-align:center; padding:28px 14px; color:var(--ink-soft); }
+  .signout{ display:block; width:100%; margin-top:16px; padding:10px; background:none;
+    border:1px dashed var(--line-strong); border-radius:var(--radius);
+    color:var(--ink-soft); font-family:inherit; font-size:12.5px; cursor:pointer; }
+
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#e8e6e1; --ink-soft:#a1a7b0; --line:#39404a; --line-strong:#4a525e;
+      --paper-card:#1c2026; --paper:#14171c; }
+    :root:not([data-theme="light"]) input,
+    :root:not([data-theme="light"]) select,
+    :root:not([data-theme="light"]) textarea{ background:#232830; color:var(--ink); }
+  }
+</style>
+</head>
+<body>
+
+<div id="authView" class="auth">
+  <h1>Protocol Officer</h1>
+  <p class="sub" id="authSub">Mag-sign in gamit ang email na ibinigay sa iyo ng adviser.</p>
+  <label for="email">Email</label>
+  <input id="email" type="email" autocomplete="email" placeholder="email@example.com">
+  <label for="password">Password</label>
+  <input id="password" type="password" autocomplete="current-password" placeholder="••••••••">
+  <div id="confirmWrap" style="display:none;">
+    <label for="password2">Ulitin ang password</label>
+    <input id="password2" type="password" autocomplete="new-password" placeholder="••••••••">
+  </div>
+  <button class="btn" id="btnPrimary">Mag-sign in</button>
+  <div class="msg" id="authMsg"></div>
+  <div class="linkrow" id="switchRow">Wala pang account? <a id="lnkSwitch">Mag-sign up</a></div>
+  <div class="linkrow"><a id="lnkForgot">Nakalimutan ang password?</a></div>
+</div>
+
+<div id="appView" hidden>
+  <div class="top">
+    <div class="cls" id="clsName">—</div>
+    <div class="sub" id="clsSub"></div>
+    <div class="who" id="who"></div>
+  </div>
+  <div class="body">
+    <div class="notice">
+      <strong>Paalala:</strong> ulat lamang ito, hindi opisyal na talaan. Ang adviser ang magpapasya
+      kung itatala. Minor offenses lamang ang puwede mong iulat. Isulat ang nakita mo nang tapat at
+      walang paghatol.
+    </div>
+
+    <div class="card">
+      <div class="lab">1 &middot; Sino</div>
+      <input class="search" id="search" type="search" placeholder="Hanapin ang pangalan..." autocomplete="off">
+      <div id="list"></div>
+    </div>
+
+    <div class="card" id="offCard" hidden>
+      <div class="lab">2 &middot; Anong paglabag</div>
+      <div id="offList" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="card" id="noteCard" hidden>
+      <div class="lab">3 &middot; Petsa at paliwanag</div>
+      <label for="rdate">Petsa</label>
+      <input type="date" id="rdate">
+      <label for="note">Ano ang nakita mo (opsiyonal)</label>
+      <textarea id="note" rows="3" placeholder="Hal.: Walang ID mula umaga hanggang hapon."></textarea>
+      <button class="btn" id="btnSend">Ipadala ang ulat</button>
+      <div class="msg" id="sendMsg"></div>
+    </div>
+
+    <div class="card" id="mineCard" hidden>
+      <div class="lab">Mga naipadala mong ulat</div>
+      <div id="mine" style="margin-top:8px;"></div>
+    </div>
+
+    <button class="signout" id="btnSignout">Mag-sign out</button>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBA2eEzHdmPYrqikiWPiLorKPLXTIJdhbg",
+  authDomain: "sms-v1-e5377.firebaseapp.com",
+  projectId: "sms-v1-e5377",
+  storageBucket: "sms-v1-e5377.firebasestorage.app",
+  messagingSenderId: "437488209294",
+  appId: "1:437488209294:web:a0dbce0bd16294b02728df"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+const $ = id => document.getElementById(id);
+let mode = 'login';
+let classRef = null, classData = null;
+let pickedStudent = null, pickedOffense = null;
+
+/* ---------- auth ---------- */
+function say(t, k){ const m = $('authMsg'); m.textContent = t; m.className = 'msg ' + (k || 'info'); if(!t) m.className = 'msg'; }
+function setMode(next){
+  mode = next;
+  const su = mode === 'signup';
+  $('confirmWrap').style.display = su ? 'block' : 'none';
+  $('btnPrimary').textContent = su ? 'Gumawa ng account' : 'Mag-sign in';
+  $('authSub').textContent = su
+    ? 'Gamitin ang email na ibinigay sa iyo ng adviser. Padadalhan ka ng verification link.'
+    : 'Mag-sign in gamit ang email na ibinigay sa iyo ng adviser.';
+  $('switchRow').innerHTML = su
+    ? 'May account ka na? <a id="lnkSwitch">Mag-sign in</a>'
+    : 'Wala pang account? <a id="lnkSwitch">Mag-sign up</a>';
+  $('lnkSwitch').addEventListener('click', ()=> setMode(su ? 'login' : 'signup'));
+  say('');
+}
+setMode('login');
+
+function friendly(e){
+  const c = (e && e.code) || '';
+  if(c === 'auth/invalid-email')          return 'Hindi wasto ang email.';
+  if(c === 'auth/user-not-found')         return 'Walang account para rito. Mag-sign up muna.';
+  if(c === 'auth/wrong-password' ||
+     c === 'auth/invalid-credential')     return 'Mali ang password.';
+  if(c === 'auth/email-already-in-use')   return 'May account na ito. Mag-sign in na lang.';
+  if(c === 'auth/weak-password')          return 'Kailangan ng 6 na karakter pataas.';
+  if(c === 'auth/too-many-requests')      return 'Maraming subok. Maghintay muna.';
+  if(c === 'auth/network-request-failed') return 'Walang koneksiyon sa internet.';
+  return 'May error. Subukang muli.';
+}
+
+$('lnkForgot').addEventListener('click', async ()=>{
+  const em = $('email').value.trim().toLowerCase();
+  if(!em){ say('Ilagay muna ang email sa itaas.', 'err'); return; }
+  try{ await auth.sendPasswordResetEmail(em); say('Nagpadala kami ng link sa iyong email.', 'ok'); }
+  catch(e){ say(friendly(e), 'err'); }
+});
+
+$('btnPrimary').addEventListener('click', async ()=>{
+  const em = $('email').value.trim().toLowerCase(), pw = $('password').value;
+  if(!em || !pw){ say('Punan ang email at password.', 'err'); return; }
+  $('btnPrimary').disabled = true;
+  try{
+    if(mode === 'signup'){
+      if(pw !== $('password2').value){ say('Hindi magkatugma ang password.', 'err'); return; }
+      const cred = await auth.createUserWithEmailAndPassword(em, pw);
+      await cred.user.sendEmailVerification();
+      await auth.signOut();
+      setMode('login');
+      say('Nagawa na. I-click ang verification link sa email mo, tapos mag-sign in.', 'ok');
+    } else {
+      await auth.signInWithEmailAndPassword(em, pw);
+    }
+  }catch(e){ say(friendly(e), 'err'); }
+  finally{ $('btnPrimary').disabled = false; }
+});
+
+$('btnSignout').addEventListener('click', ()=> auth.signOut());
+
+auth.onAuthStateChanged(async user=>{
+  if(!user){ $('authView').hidden = false; $('appView').hidden = true; return; }
+  if(!user.emailVerified){
+    await user.reload();
+    if(!auth.currentUser.emailVerified){
+      $('authView').hidden = false; $('appView').hidden = true;
+      say('Hindi pa na-verify ang email mo. I-click muna ang link na ipinadala namin.', 'err');
+      try{ await user.sendEmailVerification(); }catch(e){}
+      await auth.signOut();
+      return;
+    }
+  }
+  await loadClass(user);
+});
+
+/* ---------- class ---------- */
+async function loadClass(user){
+  $('authView').hidden = true; $('appView').hidden = false;
+  $('who').textContent = user.email;
+  $('clsName').textContent = 'Kinukuha ang klase...';
+  try{
+    const snap = await db.collection('protocol_reports')
+      .where('officerEmail', '==', user.email.toLowerCase()).limit(1).get();
+    if(snap.empty){
+      $('clsName').textContent = 'Walang nakatalagang klase';
+      $('list').innerHTML = '<div class="empty">Wala kang nakatalagang klase. '
+        + 'Makipag-ugnayan sa iyong adviser.</div>';
+      return;
+    }
+    classRef = snap.docs[0].ref;
+    classData = snap.docs[0].data();
+    $('clsName').textContent = [classData.gradeLevel && ('Grade ' + classData.gradeLevel), classData.section]
+      .filter(Boolean).join(' — ') || 'Klase';
+    $('clsSub').textContent = [classData.schoolName, classData.schoolYear].filter(Boolean).join(' · ');
+    $('rdate').value = new Date().toISOString().slice(0,10);
+    renderList();
+    renderMine();
+  }catch(e){
+    console.error(e);
+    $('clsName').textContent = 'Hindi makuha ang klase';
+    $('list').innerHTML = '<div class="empty">May problema sa pagkuha ng datos. Subukang i-refresh.</div>';
+  }
+}
+
+$('search').addEventListener('input', renderList);
+
+function renderList(){
+  const q = ($('search').value || '').trim().toLowerCase();
+  const roster = (classData.roster || []).filter(r => !q || r.name.toLowerCase().includes(q));
+  const host = $('list');
+  if(!roster.length){ host.innerHTML = '<div class="empty">Walang tugma.</div>'; return; }
+  host.innerHTML = roster.map(r=>`
+    <button class="item ${pickedStudent === r.id ? 'sel' : ''}" data-sid="${r.id}">
+      <span class="chip ${r.sex === 'MALE' ? 'm' : 'f'}">${r.sex === 'MALE' ? 'M' : 'F'}</span>
+      <span class="nm">${r.name}</span>
+    </button>`).join('');
+  host.querySelectorAll('[data-sid]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      pickedStudent = pickedStudent === b.dataset.sid ? null : b.dataset.sid;
+      pickedOffense = null;
+      renderList(); renderOffenses();
+    });
+  });
+  renderOffenses();
+}
+
+function renderOffenses(){
+  $('offCard').hidden = !pickedStudent;
+  $('noteCard').hidden = !(pickedStudent && pickedOffense);
+  if(!pickedStudent) return;
+  const host = $('offList');
+  host.innerHTML = (classData.offenses || []).map(o=>`
+    <div class="off ${pickedOffense === o.code ? 'sel' : ''}" data-code="${o.code}">
+      <span class="code">${o.code}</span><span class="txt">${o.text}</span>
+    </div>`).join('');
+  host.querySelectorAll('[data-code]').forEach(d=>{
+    d.addEventListener('click', ()=>{
+      pickedOffense = pickedOffense === d.dataset.code ? null : d.dataset.code;
+      renderOffenses();
+    });
+  });
+}
+
+$('btnSend').addEventListener('click', async ()=>{
+  if(!pickedStudent || !pickedOffense) return;
+  const btn = $('btnSend');
+  const msg = $('sendMsg');
+  btn.disabled = true; msg.className = 'msg info'; msg.textContent = 'Ipinapadala...';
+  try{
+    const snap = await classRef.get();
+    const all = (snap.data().reports || []).slice(-200);
+    all.push({
+      id: 'r' + Date.now() + Math.random().toString(36).slice(2,6),
+      studentId: pickedStudent,
+      code: pickedOffense,
+      date: $('rdate').value || new Date().toISOString().slice(0,10),
+      note: $('note').value.trim(),
+      by: auth.currentUser.email,
+      at: Date.now(),
+      status: 'pending'
+    });
+    await classRef.update({ reports: all, updatedAt: Date.now(), updatedBy: 'officer' });
+    classData.reports = all;
+    msg.className = 'msg ok';
+    msg.textContent = 'Naipadala na. Hihintayin ang pagsusuri ng adviser.';
+    $('note').value = '';
+    pickedOffense = null; pickedStudent = null;
+    renderList(); renderMine();
+  }catch(e){
+    console.error(e);
+    msg.className = 'msg err';
+    msg.textContent = 'Hindi naipadala. Subukang muli.';
+  }finally{ btn.disabled = false; }
+});
+
+function renderMine(){
+  const me = auth.currentUser ? auth.currentUser.email : '';
+  const mine = (classData.reports || []).filter(r => r.by === me).slice(-10).reverse();
+  $('mineCard').hidden = !mine.length;
+  if(!mine.length) return;
+  const nameOf = id => ((classData.roster || []).find(r => r.id === id) || {}).name || '(wala na)';
+  $('mine').innerHTML = mine.map(r=>{
+    const st = r.status === 'approved' ? 'Naitala na ng adviser'
+      : r.status === 'rejected' ? 'Hindi tinanggap' : 'Hinihintay ang adviser';
+    return `<div class="sent ${r.status === 'rejected' ? 'rej' : ''}">
+      <strong>${nameOf(r.studentId)}</strong> — ${r.code} &middot; ${st}
+      ${r.teacherNote ? `<div style="margin-top:3px; font-style:italic;">${r.teacherNote}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
